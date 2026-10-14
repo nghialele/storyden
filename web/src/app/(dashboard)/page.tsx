@@ -1,13 +1,21 @@
 import type { Metadata } from "next";
+import { notFound } from "next/navigation";
 import { z } from "zod";
 
-import { threadList } from "@/api/openapi-server/threads";
+import { type Node } from "@/api/openapi-schema";
+import { nodeList } from "@/api/openapi-server/nodes";
+import { ContentComposer } from "@/components/content/ContentComposer";
+import { NodeCardGrid } from "@/components/library/NodeCardList";
 import { UnreadyBanner } from "@/components/site/Unready";
-import { getCategoryThreadListParams } from "@/lib/feed/category";
-import { canonicalPage, jsonLD, pageLinks } from "@/lib/metadata/public";
+import { LinkButton } from "@/components/ui/link-button";
+import { PageHeading } from "@/components/ui/page-heading";
+import { PageLayout } from "@/components/ui/page-layout";
+import { SectionHeading } from "@/components/ui/section-heading";
+import { Text } from "@/components/ui/text";
+import { canonicalPage, jsonLD } from "@/lib/metadata/public";
 import type { Settings } from "@/lib/settings/settings";
 import { getSettings } from "@/lib/settings/settings-server";
-import { FeedScreen } from "@/screens/feed/FeedScreen";
+import { LStack, WStack } from "@/styled-system/jsx";
 
 type Props = {
   searchParams: Promise<Query>;
@@ -24,14 +32,27 @@ const QuerySchema = z.object({
 type Query = z.input<typeof QuerySchema>;
 
 export default async function Page({ searchParams }: Props) {
-  let page: number | undefined;
-  let settings: Settings;
+  const query = QuerySchema.safeParse(await searchParams);
+  if (!query.success || (query.data.page && query.data.page > 1)) {
+    notFound();
+  }
 
+  let settings: Settings;
+  let featuredNodes: Node[] = [];
   try {
-    ({ page } = QuerySchema.parse(await searchParams));
     settings = await getSettings();
   } catch (error) {
     return <UnreadyBanner error={error} />;
+  }
+
+  try {
+    const { data } = await nodeList(
+      { visibility: ["published"], depth: "0" },
+      { anonymous: true, cache: "no-store" },
+    );
+    featuredNodes = data.nodes;
+  } catch {
+    // The landing page remains useful when public Library content is unavailable.
   }
 
   const structuredData = {
@@ -43,13 +64,62 @@ export default async function Page({ searchParams }: Props) {
   };
 
   return (
-    <>
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: jsonLD(structuredData) }}
-      />
-      <FeedScreen page={page ?? 1} />
-    </>
+    <PageLayout>
+      <LStack gap="6" padding="4" paddingBlockEnd="8">
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: jsonLD(structuredData) }}
+        />
+
+        <LStack gap="1">
+          <PageHeading>{settings.title}</PageHeading>
+          <Text variant="supporting">{settings.description}</Text>
+        </LStack>
+
+        {settings.content && (
+          <ContentComposer
+            initialValue={settings.content}
+            value={settings.content}
+            disabled
+          />
+        )}
+
+        <WStack gap="2" flexWrap="wrap" aria-label="Primary destinations">
+          <LinkButton href="/l" variant="solid">
+            Writing and notes
+          </LinkButton>
+          <LinkButton href="/c" variant="outline">
+            Projects and collections
+          </LinkButton>
+          <LinkButton href="/links" variant="outline">
+            Elsewhere
+          </LinkButton>
+          <LinkButton href="/m" variant="ghost">
+            Members
+          </LinkButton>
+        </WStack>
+
+        <LStack gap="3">
+          <LStack gap="1">
+            <SectionHeading>Featured writing</SectionHeading>
+            <Text variant="supporting">
+              Durable notes, essays, and reference pages from the Library.
+            </Text>
+          </LStack>
+          {featuredNodes.length > 0 ? (
+            <NodeCardGrid
+              libraryPath={[]}
+              nodes={featuredNodes}
+              context="library"
+            />
+          ) : (
+            <Text variant="supporting">
+              The Library is ready for its first published page.
+            </Text>
+          )}
+        </LStack>
+      </LStack>
+    </PageLayout>
   );
 }
 
@@ -58,53 +128,17 @@ export async function generateMetadata({
 }: Props): Promise<Metadata> {
   const query = QuerySchema.safeParse(await searchParams);
 
-  if (!query.success) {
+  if (!query.success || (query.data.page && query.data.page > 1)) {
     return { title: "Page not found", robots: { index: false, follow: false } };
   }
 
   const settings = await getSettings();
-  const threadsBlock = settings.metadata.feed.blocks.find(
-    (block) => block.type === "threads",
-  );
-  const page = threadsBlock ? (query.data.page ?? 1) : 1;
-  const url = canonicalPage("/", page);
-  let pagination: Metadata["pagination"];
-
-  if (threadsBlock) {
-    try {
-      const { data } = await threadList(
-        {
-          ...getCategoryThreadListParams(threadsBlock.source, page),
-          visibility: ["published"],
-        },
-        { anonymous: true, cache: "no-store" },
-      );
-      const totalPages = Math.max(1, data.total_pages);
-
-      if (page > totalPages) {
-        return {
-          title: "Page not found",
-          robots: { index: false, follow: false },
-        };
-      }
-
-      pagination = pageLinks("/", page, totalPages);
-    } catch {
-      // Public site metadata remains available when the feed requires login.
-      if (page > 1) {
-        return {
-          title: "Page not found",
-          robots: { index: false, follow: false },
-        };
-      }
-    }
-  }
+  const url = canonicalPage("/");
 
   return {
     title: `${settings.title} | ${settings.description}`,
     description: settings.description,
     alternates: { canonical: url },
-    pagination,
     openGraph: {
       type: "website",
       title: settings.title,

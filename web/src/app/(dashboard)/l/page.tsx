@@ -1,8 +1,28 @@
+import type { Metadata } from "next";
+
 import { nodeList } from "@/api/openapi-server/nodes";
 import { UnreadyBanner } from "@/components/site/Unready";
 import { nodeListCached } from "@/lib/library/server-node-list";
 import { canonicalPage, jsonLD } from "@/lib/metadata/public";
+import { getSettings } from "@/lib/settings/settings-server";
 import { LibraryIndexScreen } from "@/screens/library/LibraryIndexScreen";
+
+export async function generateMetadata(): Promise<Metadata> {
+  const settings = await getSettings();
+  const url = canonicalPage("/l");
+
+  return {
+    title: `Library | ${settings.title}`,
+    description: settings.description,
+    alternates: { canonical: url },
+    openGraph: {
+      type: "website",
+      title: `Library | ${settings.title}`,
+      description: settings.description,
+      url,
+    },
+  };
+}
 
 export default async function Page() {
   let nodes;

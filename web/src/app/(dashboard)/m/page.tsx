@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import { z } from "zod";
 
 import { Permission } from "@/api/openapi-schema";
@@ -5,9 +6,28 @@ import { accountList } from "@/api/openapi-server/accounts";
 import { profileList } from "@/api/openapi-server/profiles";
 import { getServerSession } from "@/auth/server-session";
 import { UnreadyBanner } from "@/components/site/Unready";
+import { canonicalPage } from "@/lib/metadata/public";
+import { getSettings } from "@/lib/settings/settings-server";
 import { AdminMemberIndexScreen } from "@/screens/library/members/AdminMemberIndexScreen/AdminMemberIndexScreen";
 import { MemberIndexScreen } from "@/screens/library/members/MemberIndexScreen/MemberIndexScreen";
 import { hasPermission } from "@/utils/permissions";
+
+export async function generateMetadata(): Promise<Metadata> {
+  const settings = await getSettings();
+  const url = canonicalPage("/m");
+
+  return {
+    title: `About and people | ${settings.title}`,
+    description: settings.description,
+    alternates: { canonical: url },
+    openGraph: {
+      type: "website",
+      title: `About and people | ${settings.title}`,
+      description: settings.description,
+      url,
+    },
+  };
+}
 
 const QuerySchema = z.object({
   mode: z.enum(["default", "admin"]).optional(),

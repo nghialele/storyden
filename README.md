@@ -72,3 +72,45 @@ The short version is: most forums are decades old, insecure, abandoned or just n
 See [LOCAL_DEVELOPMENT.md](./LOCAL_DEVELOPMENT.md) for local development documenation.
 
 Contributions are very very welcome! ❤️ Until we get a proper guide set up, please open an issue if you have any questions!
+
+## Personal frontend fork
+
+This fork keeps Storyden's Go backend, OpenAPI contracts, persistence model,
+authentication, authorization, administration, community routes, and generated
+clients intact. Personal presentation is implemented through the existing
+frontend composition and installation settings so upstream changes remain easy
+to merge.
+
+### Personal route map
+
+| Personal section | Storyden surface | Content workflow |
+| --- | --- | --- |
+| Home | `/` | Installation title, description, About content, and index-page layout |
+| Writing and notes | `/l` and `/l/<slug>` | Published Library pages |
+| Projects and collections | `/c` and `/c/<id>` | Published collections |
+| Elsewhere | `/links` and `/links/<slug>` | Shared link directory |
+| About and people | `/m` and `/m/<handle>` | Public member profiles |
+
+Discussion, search, notifications, authentication, settings, moderation, and
+administration remain available for future participation and platform
+operations.
+
+### Instance configuration checklist
+
+Use the supported admin UI/API rather than editing frontend source for personal
+content: set the title, description, About introduction, accent colour, icon,
+banner, registration mode, public-access policy, and navigation order. Add
+Library pages for biography, writing, and documentation; collections for
+projects and recommendations; links for external destinations; and a public
+profile for owner identity. Use the existing theme asset mechanism only for
+installation-wide CSS/JS that settings cannot express.
+
+### Deployment and content backup
+
+Deploy the same backend, database, API, and web environment required by the
+upstream Storyden release. Record the upstream base version and required
+environment variables with the deployment configuration used by the operator.
+Back up the Storyden database and uploaded assets together; restore both into a
+staging instance before production recovery. Validate anonymous access to `/`,
+`/l`, `/c`, `/links`, and `/m/<handle>` after restore, then verify login and
+administration separately.

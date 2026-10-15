@@ -1,11 +1,11 @@
+import Link from "next/link";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { z } from "zod";
 
 import { type Node } from "@/api/openapi-schema";
 import { nodeList } from "@/api/openapi-server/nodes";
-import { ContentComposer } from "@/components/content/ContentComposer";
-import { NodeCardGrid } from "@/components/library/NodeCardList";
+import { ContentComposer } from "@/components/content/ContentComposer/ContentComposer";
 import { UnreadyBanner } from "@/components/site/Unready";
 import { LinkButton } from "@/components/ui/link-button";
 import { PageHeading } from "@/components/ui/page-heading";
@@ -107,11 +107,18 @@ export default async function Page({ searchParams }: Props) {
             </Text>
           </LStack>
           {featuredNodes.length > 0 ? (
-            <NodeCardGrid
-              libraryPath={[]}
-              nodes={featuredNodes}
-              context="library"
-            />
+            <LStack as="ul" gap="3">
+              {featuredNodes.map((node) => (
+                <li key={node.id}>
+                  <LStack gap="1">
+                    <Link href={`/l/${node.slug}`}>{node.name}</Link>
+                    {node.description && (
+                      <Text variant="supporting">{node.description}</Text>
+                    )}
+                  </LStack>
+                </li>
+              ))}
+            </LStack>
           ) : (
             <Text variant="supporting">
               The Library is ready for its first published page.

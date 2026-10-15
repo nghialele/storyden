@@ -2,7 +2,6 @@
 
 import { useChat } from "@ai-sdk/react";
 import { ChatStatus, UIMessageChunk, readUIMessageStream } from "ai";
-import type { JSONSchema7 } from "json-schema";
 import {
   PropsWithChildren,
   createContext,
@@ -44,7 +43,6 @@ import {
   ToolName,
 } from "@/api/robots";
 import { StorydenUIMessage, toStorydenUIMessages } from "@/api/robots-types";
-import mcpSchema from "@/api/robots.json";
 import { API_ADDRESS } from "@/config";
 import { libraryBus } from "@/lib/library/events";
 import { deriveError } from "@/utils/error";
@@ -101,8 +99,6 @@ function threadListKeyFilterFn(key: unknown) {
   if (!Array.isArray(key)) return false;
   return key[0] === getThreadListKey()[0];
 }
-
-const typedSchema = mcpSchema as JSONSchema7;
 
 type HandleToolCallOptions = {
   toolCall: ClientToolCall;
@@ -263,7 +259,8 @@ export function RobotChatContext({
             ? (JSON.parse(init.body) as Record<string, unknown>)
             : {};
         const pageContext = await getPageContext();
-        const clientTools = await getCurrentWebMCPClientToolContext();
+        const clientTools =
+          await getCurrentWebMCPClientToolContext(pageContext);
 
         request = {
           ...request,

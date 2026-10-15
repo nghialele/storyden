@@ -1,7 +1,6 @@
 import Link from "next/link";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import { z } from "zod";
 
 import { type Node } from "@/api/openapi-schema";
 import { nodeList } from "@/api/openapi-server/nodes";
@@ -15,6 +14,7 @@ import { Text } from "@/components/ui/text";
 import { canonicalPage, jsonLD } from "@/lib/metadata/public";
 import type { Settings } from "@/lib/settings/settings";
 import { getSettings } from "@/lib/settings/settings-server";
+import * as z from "@/lib/validation";
 import { LStack, WStack } from "@/styled-system/jsx";
 
 type Props = {
@@ -22,12 +22,11 @@ type Props = {
 };
 
 const QuerySchema = z.object({
-  page: z
-    .string()
-    .regex(/^[1-9]\d*$/)
-    .transform(Number)
-    .refine(Number.isSafeInteger)
-    .optional(),
+  page: z.optional(
+    z
+      .pipe(z.string().check(z.regex(/^[1-9]\d*$/)), z.transform(Number))
+      .check(z.refine(Number.isSafeInteger)),
+  ),
 });
 type Query = z.input<typeof QuerySchema>;
 
